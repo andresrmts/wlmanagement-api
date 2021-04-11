@@ -1,5 +1,15 @@
 const express = require('express');
 const cors = require('cors');
+const bcrypt = require('bcryptjs');
+const knex = require('knex')({
+  client: 'pg',
+  connection: {
+    host : '127.0.0.1',
+    user : 'getandressed',
+    password : '',
+    database : 'wlmanagement'
+  }
+});
 
 const app = express();
 const port = process.env.PORT || 3002;
@@ -13,36 +23,46 @@ app.get('/', (req, res) => {
 app.post('/signin', (req, res) => {
   const { email, password } = req.body;
 
-  const user = {
-    id: 72,
-    name: "Kasutaja",
-    email: 'kasutaja@kasutaja.ee'
-  }
-
-  if (!email || !password) {
-    return res.status(404).json('Incorrect submission!')
-  }
-
-  if (email === 'email@email.com' && password === 'minuparool') {
-    return res.json(user);
-  }
-  res.status(400).json('Wrong credentials');
+  knex.select('email', 'hash').from('login')
+    .where('email', '=', email)
+    .then(async data => {
+      const isValid = await bcrypt.compare(password, data[0].hash);
+      if (isValid) {
+        return knex.select('*').from('users')
+          .where('email', '=', email)
+          .then(user => res.json(user[0]))
+          .catch(err => res.status(400).json('unable to get user'))
+      }
+      res.status(400).json('Wrong credentials');
+    })
+    .catch(err => res.status(400).json('Wrong credentials'))
 })
 
-app.post('/register', (req, res) => {
+app.post('/register', async (req, res) => {
   const { name, email, password } = req.body;
 
-  if (!email || !password || !name) {
-    return res.status(404).json('Incorrect submission!')
-  }
-
-  const user = {
-    id: Math.floor(Math.random() * 100),
-    name,
-    email
-  };
-
-  res.json(user);
+  const hash = await bcrypt.hash(password, 8);
+  knex.transaction(trx => {
+    trx.insert({
+      hash,
+      email
+    })
+    .into('login')
+    .returning('email')
+    .then(loginEmail => { 
+      return trx('users')
+        .returning('*')
+        .insert({
+          name,
+          email: loginEmail[0],
+          joined: new Date()
+        })
+        .then(user => res.json(user[0]))
+    })
+    .then(trx.commit)
+    .catch(trx.rollback)
+  })
+  .catch(err => res.status(400).json('Unable to register'));
 })
 
 app.listen(port, () => {
