@@ -63,6 +63,48 @@ app.post('/register', async (req, res) => {
     .catch(trx.rollback)
   })
   .catch(err => res.status(400).json('Unable to register'));
+});
+
+app.post('/createcompetition', (req, res) => {
+  const { name, authorId, location } = req.body;
+  knex('competitions')
+    .returning('*')
+    .insert({
+      name,
+      authorid: authorId,
+      location
+  })
+  .then(competition => res.json(competition[0]))
+  .catch(e => res.status(400).json('Not able to create competition!'))
+});
+
+app.post('/competition/:id/createathlete', (req, res) => {
+  const { name, age, snatch, cnj, coachid, coachname } = req.body;
+  const { id } = req.params;
+
+  knex('athletes')
+    .returning('*')
+    .insert({
+      name,
+      compid: id,
+      age,
+      snatch,
+      cnj,
+      coachid,
+      coachname
+    })
+    .then(athlete => res.json(athlete[0]))
+    .catch(e => res.status(400).json('Unable to register athlete'));
+});
+
+app.delete('/competition/deleteathlete', (req, res) => {
+  const { athleteid } = req.body;
+
+  knex('athletes')
+    .where('id', athleteid)
+    .del()
+    .then(response => res.json('Athlete succesfully deleted!'))
+    .catch(e => res.status(400).json('Unable to delete athlete!'))
 })
 
 app.listen(port, () => {
