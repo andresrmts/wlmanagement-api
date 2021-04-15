@@ -17,15 +17,13 @@ const router = new express.Router();
 router.post('/signin', (req, res) => {
   const { email, password } = req.body;
 
-  knex
-    .select('email', 'hash')
+  knex.select('email', 'hash')
     .from('login')
     .where('email', '=', email)
     .then(async data => {
       const isValid = await bcrypt.compare(password, data[0].hash);
       if (isValid) {
-        return knex
-          .select('*')
+        return knex.select('*')
           .from('users')
           .where('email', '=', email)
           .then((user) => res.json(user[0]))
@@ -44,8 +42,7 @@ router.post('/register', async (req, res) => {
   const hash = await bcrypt.hash(password, 8);
   knex
     .transaction((trx) => {
-      trx
-        .insert({
+      trx.insert({
           hash,
           email,
         })
@@ -81,5 +78,45 @@ router.post('/createcompetition', (req, res) => {
     .then(competition => res.json(competition[0]))
     .catch(e => res.status(400).json('Not able to create competition!'));
 });
+
+// Get Competitions
+
+router.get('/competitions', (req, res) => {
+  knex.select('id', 'authorid', 'name', 'location', 'status')
+    .from('competitions')
+    .then(competitions => res.json(competitions))
+});
+
+// Get single competition (enter competition)
+
+router.post('/competitions/:compid', (req, res) => {
+  const { compid } = req.params;
+  const { userid } = req.body;
+
+  knex.select('*')
+    .from('competitions')
+    .where('id', '=', compid)
+    .then(competition => {
+      if (competition.length === 0) {
+        return res.status(400).json('Competition doesn\'t exist!')
+      }
+      return knex.select('*')
+        .from('officials')
+        .where('compid', '=', compid)
+        .then(officials => {
+          return knex.select('*')
+            .from('athletes')
+            .where('compid', '=', compid)
+            .then(athletes => {
+              res.json({
+                competition: competition[0],
+                officials,
+                athletes
+              })
+            })
+        })
+    })
+    .catch(e => res.status(400).json('Unable to fetch competition!'))
+})
 
 module.exports = router;
