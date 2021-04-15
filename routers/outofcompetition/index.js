@@ -19,13 +19,13 @@ router.post('/signin', (req, res) => {
 
   knex.select('email', 'hash')
     .from('login')
-    .where('email', '=', email)
+    .where('email', email)
     .then(async data => {
       const isValid = await bcrypt.compare(password, data[0].hash);
       if (isValid) {
         return knex.select('*')
           .from('users')
-          .where('email', '=', email)
+          .where('email', email)
           .then((user) => res.json(user[0]))
           .catch((err) => res.status(400).json('unable to get user'));
       }
@@ -91,22 +91,21 @@ router.get('/competitions', (req, res) => {
 
 router.post('/competitions/:compid', (req, res) => {
   const { compid } = req.params;
-  const { userid } = req.body;
 
   knex.select('*')
     .from('competitions')
-    .where('id', '=', compid)
+    .where('id', compid)
     .then(competition => {
       if (competition.length === 0) {
         return res.status(400).json('Competition doesn\'t exist!')
       }
       return knex.select('*')
         .from('officials')
-        .where('compid', '=', compid)
+        .where('compid', compid)
         .then(officials => {
           return knex.select('*')
             .from('athletes')
-            .where('compid', '=', compid)
+            .where('compid', compid)
             .then(athletes => {
               res.json({
                 competition: competition[0],
