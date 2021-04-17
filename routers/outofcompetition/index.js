@@ -89,33 +89,33 @@ router.get('/competitions', (req, res) => {
 
 // Get single competition (enter competition)
 
-router.post('/competitions/:compid', (req, res) => {
+router.post('/competitions/:compid', async (req, res) => {
   const { compid } = req.params;
 
-  knex.select('*')
-    .from('competitions')
-    .where('id', compid)
-    .then(competition => {
-      if (competition.length === 0) {
-        return res.status(400).json('Competition doesn\'t exist!')
-      }
-      return knex.select('*')
-        .from('officials')
-        .where('compid', compid)
-        .then(officials => {
-          return knex.select('*')
-            .from('athletes')
-            .where('compid', compid)
-            .then(athletes => {
-              res.json({
-                competition: competition[0],
-                officials,
-                athletes
-              })
-            })
-        })
+  try {
+    const competition = await knex.select('*')
+      .from('competitions')
+      .where('id', compid)
+
+    const officials = await knex.select('*')
+      .from('officials')
+      .where('compid', compid);
+
+    const athletes = await knex.select('*')
+      .from('athletes')
+      .where('compid', compid);
+
+    if (competition.length === 0) {
+      return res.status(400).json('Competition doesn\'t exist!')
+    }
+    return res.json({
+      competition: competition[0],
+      officials,
+      athletes
     })
-    .catch(e => res.status(400).json('Unable to fetch competition!'))
+  } catch (e) {
+    return res.status(400).json('Not able to fetch competition!')
+  }
 })
 
 module.exports = router;

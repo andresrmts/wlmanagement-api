@@ -13,15 +13,15 @@ const router = new express.Router();
 
 // Create Athlete
 
-router.post('/competition/:id/createathlete', (req, res) => {
+router.post('/competition/:compid/createathlete', (req, res) => {
   const { name, age, snatch, cnj, coachid, coachname } = req.body;
-  const { id } = req.params;
+  const { compid } = req.params;
 
   knex('athletes')
     .returning('*')
     .insert({
       name,
-      compid: id,
+      compid,
       age,
       snatch,
       cnj,
@@ -131,6 +131,50 @@ router.patch('/competition/:compid/editathlete', (req, res) => {
     })
     .then(athlete => res.json(athlete[0]))
     .catch(err => res.status(400).json(`Unable to edit ${property}!`))
+});
+
+// Toggle competition status
+
+router.patch('/competition/:compid/status', (req, res) => {
+  const { compid } = req.params;
+  const { status } = req.body;
+
+  knex('competitions')
+    .returning(['id', 'status', 'timer'])
+    .where('id', compid)
+    .update({
+      status
+    })
+    .then(competition => res.json(competition[0]))
+    .catch(e => res.status(400).json('Unable to toggle comp status!'))
+});
+
+// Delete comp
+
+router.delete('/competition/:compid/delete', (req, res) => {
+  const { compid } = req.params;
+
+  knex.transaction(trx => {
+    trx('competitions')
+      .where('id', compid)
+      .del()
+      .returning('id')
+      .then(competitionid => {
+        return trx('officials')
+          .where('compid', competitionid[0])
+          .del()
+          .returning('compid')
+          .then(athcompid => {
+            return trx('athletes')
+              .where('compid', compid)
+              .del()
+              .then(response => res.json('Competition successfully deleted!'))
+          })
+      })
+      .then(trx.commit)
+      .catch(trx.rollback)
+  })
+  .catch(err => res.status(400).json('Unable to delete competition!'))
 })
 
 module.exports = router;
