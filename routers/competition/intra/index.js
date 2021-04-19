@@ -27,4 +27,23 @@ router.patch('/competition/:compid/update', (req, res) => {
     .catch(err => res.status(400).json(`Unable to update ${property}`));
 })
 
+// Update judge verdict
+
+router.patch('/competition/:compid/judge', (req, res) => {
+  const { compid } = req.params;
+  const { spot, decision } = req.body;
+
+  const judge = `verdict${spot}`
+
+  knex('competitions')
+    .returning(['verdict1', 'verdict2', 'verdict3'])
+    .where('id', compid)
+    .update({
+      [judge]: decision
+    })
+    .then(decisions => res.json(decisions[0]))
+    .catch(err => res.status(400).json('Unable to update verdict!'))
+
+})
+
 module.exports = router;
