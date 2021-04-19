@@ -133,22 +133,6 @@ router.patch('/competition/:compid/editathlete', (req, res) => {
     .catch(err => res.status(400).json(`Unable to edit ${property}!`))
 });
 
-// Toggle competition status
-
-router.patch('/competition/:compid/status', (req, res) => {
-  const { compid } = req.params;
-  const { status } = req.body;
-
-  knex('competitions')
-    .returning(['id', 'status', 'timer'])
-    .where('id', compid)
-    .update({
-      status
-    })
-    .then(competition => res.json(competition[0]))
-    .catch(e => res.status(400).json('Unable to toggle comp status!'))
-});
-
 // Delete comp
 
 router.delete('/competition/:compid/delete', (req, res) => {
@@ -176,5 +160,21 @@ router.delete('/competition/:compid/delete', (req, res) => {
   })
   .catch(err => res.status(400).json('Unable to delete competition!'))
 })
+
+// Toggle competition status
+
+router.patch('/competition/:compid/status', (req, res) => {
+  const { compid } = req.params;
+  const { status } = req.body;
+
+  knex('competitions')
+    .returning(['id', 'status', 'timer'])
+    .where('id', compid)
+    .update({
+      status
+    })
+    .then(competition => res.json(competition[0]))
+    .catch(e => res.status(400).json('Unable to toggle comp status!'))
+});
 
 module.exports = router;
