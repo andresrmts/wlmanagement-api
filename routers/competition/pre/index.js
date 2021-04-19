@@ -165,13 +165,14 @@ router.delete('/competition/:compid/delete', (req, res) => {
 
 router.patch('/competition/:compid/status', (req, res) => {
   const { compid } = req.params;
-  const { status } = req.body;
+  const { status, time } = req.body;
 
   knex('competitions')
-    .returning(['id', 'status', 'timer'])
+    .returning(['id', 'status', 'timer', 'attemptend'])
     .where('id', compid)
     .update({
-      status
+      status,
+      attemptend: time
     })
     .then(competition => res.json(competition[0]))
     .catch(e => res.status(400).json('Unable to toggle comp status!'))
