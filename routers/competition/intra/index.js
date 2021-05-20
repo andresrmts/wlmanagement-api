@@ -43,7 +43,29 @@ router.patch('/competition/:compid/judge', (req, res) => {
     })
     .then(decisions => res.json(decisions[0]))
     .catch(err => res.status(400).json('Unable to update verdict!'))
-
 })
+
+// Increase attempt & set attempt result
+
+router.patch('/competition/:compid/setresult', (req, res) => {
+  const { compid } = req.params;
+  const { athleteid, attempt, result, lift } = req.body;
+
+  const liftResult = `${lift}result[${attempt + 1}]`
+
+  knex('athletes')
+    .returning('*')
+    .where('compid', compid)
+    .where('id', athleteid)
+    .update({
+      [liftResult]: result
+    })
+    .increment({
+      attempt: 1,
+      [lift]: 1
+    })
+    .then(athlete => res.json(athlete[0]))
+    .catch(err => res.status(400).json('Unable to update result!'))
+});
 
 module.exports = router;
