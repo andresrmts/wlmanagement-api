@@ -67,16 +67,17 @@ router.post('/register', async (req, res) => {
 // Create competition
 
 router.post('/createcompetition', (req, res) => {
-  const { name, authorId, location } = req.body;
+  const { name, authorId, location, id } = req.body;
   knex('competitions')
     .returning('*')
     .insert({
+      id,
       name,
       authorid: authorId,
       location,
     })
     .then(competition => res.json(competition[0]))
-    .catch(e => res.status(400).json('Not able to create competition!'));
+    .catch(e => console.log(e));
 });
 
 // Get Competitions
