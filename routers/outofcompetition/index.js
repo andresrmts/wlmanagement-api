@@ -71,7 +71,7 @@ router.post('/createcompetition', (req, res) => {
   knex('competitions')
     .returning('*')
     .insert({
-      id,
+      compid: id,
       name,
       authorid: authorId,
       location,
@@ -96,15 +96,15 @@ router.post('/competitions/:compid', async (req, res) => {
   try {
     const competition = await knex.select('*')
       .from('competitions')
-      .where('id', compid)
+      .where('compid', compid)
 
     const officials = await knex.select('*')
       .from('officials')
-      .where('compid', compid);
+      .where('compid2', compid);
 
     const athletes = await knex.select('*')
       .from('athletes')
-      .where('compid', compid);
+      .where('compid2', compid);
 
     if (competition.length === 0) {
       return res.status(400).json('Competition doesn\'t exist!')
@@ -115,6 +115,7 @@ router.post('/competitions/:compid', async (req, res) => {
       athletes
     })
   } catch (e) {
+    console.log(e);
     return res.status(400).json('Not able to fetch competition!')
   }
 })
