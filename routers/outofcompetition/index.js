@@ -1,5 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const knex = require('knex')({
   client: 'pg',
   connection: {
@@ -9,6 +10,7 @@ const knex = require('knex')({
     database: 'wlmanagement',
   },
 });
+const generateToken = require('../../util/generateToken');
 
 const router = new express.Router();
 
@@ -38,6 +40,7 @@ router.post('/signin', (req, res) => {
 
 router.post('/register', async (req, res) => {
   const { name, email, password } = req.body;
+  const token = generateToken(email);
 
   const hash = await bcrypt.hash(password, 8);
   knex
@@ -55,6 +58,7 @@ router.post('/register', async (req, res) => {
               name,
               email: loginEmail[0],
               joined: new Date(),
+              tokens: token
             })
             .then(user => res.json(user[0]));
         })
