@@ -18,6 +18,7 @@ const router = new express.Router();
 
 router.post('/signin', (req, res) => {
   const { email, password } = req.body;
+  const token = generateToken(email);
 
   knex.select('email', 'hash')
     .from('login')
@@ -25,10 +26,25 @@ router.post('/signin', (req, res) => {
     .then(async data => {
       const isValid = await bcrypt.compare(password, data[0].hash);
       if (isValid) {
-        return knex.select('*')
+        return knex.select('tokens')
           .from('users')
           .where('email', email)
-          .then((user) => res.json(user[0]))
+          .then(tokens => {
+            const tokensLength = tokens[0].tokens.length;
+            const tokenVar = `tokens[${tokensLength + 1}]`
+            knex.select()
+            .from('users')
+            .returning('*')
+            .where('email', email)
+            .update({
+              [tokenVar]: token
+            })
+            .then(user => res.json({
+              user: user[0],
+              token
+            }))
+            .catch(err => res.json(err))
+          })
           .catch((err) => res.status(400).json('unable to get user'));
       }
       res.status(400).json('Wrong credentials');
@@ -58,7 +74,7 @@ router.post('/register', async (req, res) => {
               name,
               email: loginEmail[0],
               joined: new Date(),
-              tokens: token
+              tokens: [token]
             })
             .then(user => res.json(user[0]));
         })

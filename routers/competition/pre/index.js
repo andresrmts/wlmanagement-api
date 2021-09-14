@@ -21,7 +21,7 @@ router.post('/competition/:compid/createathlete', (req, res) => {
     .returning('*')
     .insert({
       name,
-      compid,
+      compid2: compid,
       age,
       snatch,
       cnj,
