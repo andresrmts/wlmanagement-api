@@ -1,6 +1,5 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 const knex = require('knex')({
   client: 'pg',
   connection: {
@@ -11,6 +10,7 @@ const knex = require('knex')({
   },
 });
 const generateToken = require('../../util/generateToken');
+const auth = require('../../util/auth');
 
 const router = new express.Router();
 
@@ -76,7 +76,11 @@ router.post('/register', async (req, res) => {
               joined: new Date(),
               tokens: [token]
             })
-            .then(user => res.json(user[0]));
+            .then(user => res.status(201).json({
+              user: user[0],
+              token
+            }
+            ));
         })
         .then(trx.commit)
         .catch(trx.rollback);
@@ -84,16 +88,48 @@ router.post('/register', async (req, res) => {
     .catch(err => res.status(400).json('Unable to register'));
 });
 
+// Log out
+
+router.post('/logout', auth, async (req, res) => {
+  const { user, token } = req;
+
+  try {
+    const selectUser = await knex.select('*')
+    .from('users')
+    .where('email', user.email)
+  
+    if (selectUser.length !== 0) {
+      let newTokenArr = selectUser[0].tokens.filter(tok => tok !== token);
+
+      console.log(newTokenArr);
+  
+      await knex.select('tokens')
+      .from('users')
+      .where('email', user.email)
+      .update('tokens', newTokenArr);
+
+      res.send();
+
+    } else {
+      throw new Error();
+    }
+  } catch (e) {
+    res.status(400).send({ err: 'User not found' })
+  }
+  
+})
+
 // Create competition
 
-router.post('/createcompetition', (req, res) => {
-  const { name, authorId, location, id } = req.body;
+router.post('/createcompetition', auth, (req, res) => {
+  const { name, location, id } = req.body;
+  const authorid = req.user.id;
   knex('competitions')
     .returning('*')
     .insert({
       compid: id,
       name,
-      authorid: authorId,
+      authorid,
       location,
     })
     .then(competition => res.json(competition[0]))
@@ -102,15 +138,15 @@ router.post('/createcompetition', (req, res) => {
 
 // Get Competitions
 
-router.get('/competitions', (req, res) => {
-  knex.select('id', 'authorid', 'name', 'location', 'status')
+router.get('/competitions', auth, (req, res) => {
+  knex.select('compid', 'authorid', 'name', 'location', 'status')
     .from('competitions')
     .then(competitions => res.json(competitions))
 });
 
 // Get single competition (enter competition)
 
-router.post('/competitions/:compid', async (req, res) => {
+router.post('/competitions/:compid', auth, async (req, res) => {
   const { compid } = req.params;
 
   try {

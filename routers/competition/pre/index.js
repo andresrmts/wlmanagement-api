@@ -1,4 +1,5 @@
 const express = require('express');
+const compAuth = require('../../../util/compAuth');
 const knex = require('knex')({
   client: 'pg',
   connection: {
@@ -10,11 +11,13 @@ const knex = require('knex')({
 });
 
 const router = new express.Router();
+// router.use(compAuth());
 
 // Create Athlete
 
 router.post('/competition/:compid/createathlete', (req, res) => {
-  const { name, age, snatch, cnj, coachid, coachname } = req.body;
+  const { name, age, snatch, cnj, coachname } = req.body;
+  const { id } = req.user;
   const { compid } = req.params;
 
   knex('athletes')
@@ -25,7 +28,7 @@ router.post('/competition/:compid/createathlete', (req, res) => {
       age,
       snatch,
       cnj,
-      coachid,
+      coachid: id,
       coachname,
     })
     .then(athlete => res.json(athlete[0]))
