@@ -39,10 +39,8 @@ const compAuth = async (req, res, next) => {
       } else {
         throw new Error();
       }
-    } else {
-      throw new Error();
     }
-
+    throw new Error();
   } catch (e) {
     res.status(401).send({ err: 'please authenticate' })
   }
